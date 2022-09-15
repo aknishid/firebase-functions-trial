@@ -5,71 +5,46 @@ const firebase = require("firebase-admin");
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
 const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  databaseURL: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: functions.config().apikey,
+  authDomain: functions.config().authdomain,
+  databaseURL: functions.config().databaseurl,
+  projectId: functions.config().projectid,
+  storageBucket: functions.config().storagebucket,
+  messagingSenderId: functions.config().messagingsenderid,
+  appId: functions.config().appid,
 };
 
 // Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-
-  function isValidUser(localId) {
-    firebase.firestore()
-    .collection('/users')
-    .doc(localId)
-    .get()
-    .then(function (doc) {
-      if (doc.exists) {
-        console.log("valid user")
-        return "valid user"
-      } else {
-        console.log("No valid user");
-        return "No valid user"
-      }
-    })
-    .catch(function (error) {
-      console.log("Error : ", error);
-    })
-  }
+firebase.initializeApp(firebaseConfig);
 
 exports.helloWorld = functions.https.onRequest(
 
     (request, response) => {
-  functions.logger.info("Hello logs!", {structuredData: true});
-  firebase.firestore()
-  .collection('/users')
-  .doc(request.query.localId)
-  .get()
-  .then(function (doc) {
-    if (doc.exists) {
-      console.log("doc.data().login",doc.data().login._seconds)
-      // TODO ログイン時間を更新する
-      const lastLogin = doc.data().login._seconds
+      functions.logger.info("Hello logs!", {structuredData: true});
+      firebase.firestore()
+          .collection("/users")
+          .doc(request.query.userId)
+          .get()
+          .then(function(doc) {
+            if (doc.exists) {
+              const lastLogin = doc.data().login._seconds;
+              response.send(`last login ${lastLogin} now login ${now}`);
+            } else {
+              response.send("No valid user");
+            }
+          })
+          .catch(function(error) {
+            console.log("Error : ", error);
+          });
 
-      console.log("updated")
-      response.send(`valid user last login ${lastLogin} now login ${now}`)
-
-    } else {
-        response.send("No valid user");
-    
+      // ログイン時間の更新
+      const now = new Date();
+      firebase.firestore()
+          .collection("/users")
+          .doc(request.query.userId)
+          .update({
+            login: now,
+          });
     }
-  })
-  .catch(function (error) {
-    console.log("Error : ", error);
-  })
-
-  const now = new Date();
-  firebase.firestore()
-  .collection('/users')
-  .doc(request.query.localId)
-  .update({
-    login: now
-  })
-
-}
 );
 
