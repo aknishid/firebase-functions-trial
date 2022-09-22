@@ -45,6 +45,20 @@ exports.helloWorld = functions.https.onRequest(
           .update({
             login: now,
           });
+
+      const idToken = request.query.idToken;
+      console.log("idToken", idToken);
+      firebase.auth()
+          .verifyIdToken(idToken)
+          .then((decodedToken) => {
+            const uid = decodedToken.uid;
+            console.log("uid", uid);
+          // ...
+          })
+          .catch((error) => {
+            console.log(error);
+          // Handle error
+          });
     }
 );
 
