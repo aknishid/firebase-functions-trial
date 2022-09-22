@@ -20,43 +20,43 @@ firebase.initializeApp(firebaseConfig);
 exports.helloWorld = functions.https.onRequest(
 
     (request, response) => {
-      functions.logger.info("Hello logs!", {structuredData: true});
-      firebase.firestore()
-          .collection("/users")
-          .doc(request.query.userId)
-          .get()
-          .then(function(doc) {
-            if (doc.exists) {
-              const lastLogin = doc.data().login._seconds;
-              response.send(`last login ${lastLogin} now login ${now}`);
-            } else {
-              response.send("No valid user");
-            }
-          })
-          .catch(function(error) {
-            console.log("Error : ", error);
-          });
-
-      // ログイン時間の更新
-      const now = new Date();
-      firebase.firestore()
-          .collection("/users")
-          .doc(request.query.userId)
-          .update({
-            login: now,
-          });
-
       const idToken = request.query.idToken;
-      console.log("idToken", idToken);
+      let uid;
+      functions.logger.info("idToken", idToken);
       firebase.auth()
           .verifyIdToken(idToken)
           .then((decodedToken) => {
-            const uid = decodedToken.uid;
-            console.log("uid", uid);
-          // ...
+            uid = decodedToken.uid;
+            functions.logger.info(`uid: ${uid}`);
+            // ログイン時間の更新
+            const now = new Date();
+            firebase.firestore()
+                .collection("/users")
+                .doc(uid)
+                .update({
+                  login: now,
+                });
+            firebase.firestore()
+                .collection("/users")
+                .doc(uid)
+                .get()
+                .then(function(doc) {
+                  if (doc.exists) {
+                    const lastLogin = doc.data().login._seconds;
+                    const name = doc.data().name;
+                    response
+                        .status(200)
+                        .send({"name": name, "lastLogin": lastLogin});
+                  } else {
+                    response.send("No valid user");
+                  }
+                })
+                .catch(function(error) {
+                  response.send(`${error}`);
+                });
           })
           .catch((error) => {
-            console.log(error);
+            response.send(`${error}`);
           // Handle error
           });
     }
